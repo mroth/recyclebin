@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
@@ -60,9 +61,21 @@ func tracker(terms string, duration time.Duration) (r results) {
 			case anaconda.Tweet:
 				tracked++
 				t := m.(anaconda.Tweet)
-				r.phrases.Increment(t.Text)
+
+				// as a quick experiment, try to normalize to text without URL,
+				// because t.co fucks with us otherwise, for now just grab text up to before http
+				if len(t.Entities.Urls) >= 1 {
+					// firstUrl := t.Entities.Urls[0] // this is too unreliable, because of difference in counting multibyte
+					mi := strings.Index(t.Text, "http")
+					part1 := t.Text[:mi]
+					r.phrases.Increment(part1)
+				} else {
+					r.phrases.Increment(t.Text)
+				}
+
 				r.users.Increment(t.User.ScreenName)
 				r.lang.Increment(t.Lang)
+
 				for _, url := range t.Entities.Urls {
 					r.urls.Increment(url.Expanded_url)
 				}
@@ -105,10 +118,10 @@ func main() {
 	rate := float64(tracked) / duration.Seconds()
 	fmt.Printf("\n\n✨ DONE ✨ - time monitored: %v, total tweets tracked: %v, rate: %.1f/sec.\n", duration, tracked, rate)
 
-	fmt.Println("\nUSERS")
+	fmt.Println("\nACCOUNTS")
 	userScores := results.users.Scores()
 	multiTweeters := userScores.GreaterThan(1)
-	fmt.Printf("Total distinct users: %d, amount who tweeted more than once: %d\n",
+	fmt.Printf("Total distinct accounts: %d, amount who tweeted more than once: %d\n",
 		userScores.Len(),
 		multiTweeters.Len(),
 	)
@@ -128,6 +141,7 @@ func main() {
 	phraseScores := results.phrases.Scores()
 	reusedPhrases := phraseScores.GreaterThan(1)
 	fmt.Printf("Total distinct text tweets: %d, appeared more than once: %d\n", phraseScores.Len(), reusedPhrases.Len())
+	fmt.Println("Most common:", phraseScores.GreaterThan(1).Sorted().First(10))
 
 }
 
