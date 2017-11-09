@@ -34,12 +34,13 @@ func initTwitterAPI() *anaconda.TwitterApi {
 }
 
 type results struct {
-	phrases, users, lang *termCounter
+	phrases, users, urls, lang *termCounter
 }
 
 func tracker(terms string, duration time.Duration) (r results) {
 	r.phrases = NewTermCounter()
 	r.users = NewTermCounter()
+	r.urls = NewTermCounter()
 	r.lang = NewTermCounter()
 
 	api := initTwitterAPI()
@@ -62,6 +63,9 @@ func tracker(terms string, duration time.Duration) (r results) {
 				r.phrases.Increment(t.Text)
 				r.users.Increment(t.User.ScreenName)
 				r.lang.Increment(t.Lang)
+				for _, url := range t.Entities.Urls {
+					r.urls.Increment(url.Expanded_url)
+				}
 
 			case anaconda.StallWarning:
 				fmt.Println("Got a stall warning! falling behind!")
@@ -113,6 +117,12 @@ func main() {
 	fmt.Println("\nLANGUAGE")
 	langScores := results.lang.Scores()
 	fmt.Printf("Language distribution: %v\n", langScores.Sorted())
+
+	fmt.Println("\nURLS")
+	urlScores := results.urls.Scores()
+	reusedUrls := urlScores.GreaterThan(1)
+	fmt.Printf("Total distinct URLs: %d, appeared more than once: %d\n", urlScores.Len(), reusedUrls.Len())
+	fmt.Println("Most active:", urlScores.GreaterThan(1).Sorted().First(10))
 
 	fmt.Println("\nTEXT")
 	phraseScores := results.phrases.Scores()
