@@ -88,6 +88,9 @@ func logger() *time.Ticker {
 }
 
 func main() {
+	term := "♻️"
+	fmt.Printf("🚀 Starting to monitor Twitter for term: [ %v ]...\n", term)
+
 	logger := logger()
 	duration := time.Second * 10 // TODO: paramaterize
 	results := tracker("♻️", duration)
@@ -98,14 +101,14 @@ func main() {
 	rate := float64(tracked) / duration.Seconds()
 	fmt.Printf("\n\n✨ DONE ✨ - time monitored: %v, total tweets tracked: %v, rate: %.1f/sec.\n", duration, tracked, rate)
 
-	fmt.Println("USERS")
+	fmt.Println("\nUSERS")
 	userScores := results.users.Scores()
 	multiTweeters := userScores.GreaterThan(1)
 	fmt.Printf("Total distinct users: %d, amount who tweeted more than once: %d\n",
 		userScores.Len(),
 		multiTweeters.Len(),
 	)
-	fmt.Println("Most active below:", userScores.GreaterThan(1).Sorted().First(10))
+	fmt.Println("Most active:", userScores.GreaterThan(1).Sorted().First(10))
 
 	fmt.Println("\nLANGUAGE")
 	langScores := results.lang.Scores()
@@ -114,7 +117,7 @@ func main() {
 	fmt.Println("\nTEXT")
 	phraseScores := results.phrases.Scores()
 	reusedPhrases := phraseScores.GreaterThan(1)
-	fmt.Printf("Total distinct text tweets: %d, appeared more than once: %d", phraseScores.Len(), reusedPhrases.Len())
+	fmt.Printf("Total distinct text tweets: %d, appeared more than once: %d\n", phraseScores.Len(), reusedPhrases.Len())
 
 }
 
