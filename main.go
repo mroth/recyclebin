@@ -72,24 +72,26 @@ func tracker(terms string, duration time.Duration) (r results) {
 		case m := <-stream.C:
 			switch m.(type) {
 			case anaconda.Tweet:
-				tracked++
 				t := m.(anaconda.Tweet)
-				// as a quick experiment, try to normalize to text without URL,
-				// because t.co fucks with us otherwise, for now just grab text up to before http
-				if len(t.Entities.Urls) >= 1 {
-					// firstUrl := t.Entities.Urls[0] // this is too unreliable, because of difference in counting multibyte
-					mi := strings.Index(t.Text, "http")
-					part1 := t.Text[:mi]
-					r.phrases.Increment(part1)
-				} else {
-					r.phrases.Increment(t.Text)
-				}
-
+				tracked++
 				r.users.Increment(t.User.ScreenName)
 				r.lang.Increment(t.Lang)
-
 				for _, url := range t.Entities.Urls {
 					r.urls.Increment(url.Expanded_url)
+				}
+				// As a quick experiment, try to normalize to text without URL.
+				//
+				// Because t.co messes with us otherwise*, just grab text up to "http".
+				// Using t.Entities.Urls[0] is too unreliable, because of difference in
+				// counting multibyte char indexes which Go doesn't handle the same way.
+				//
+				// (*...by using a different hash for each user for tracking purposes.)
+				if len(t.Entities.Urls) >= 1 {
+					mi := strings.Index(t.Text, "http")
+					p1 := t.Text[:mi]
+					r.phrases.Increment(p1)
+				} else {
+					r.phrases.Increment(t.Text)
 				}
 			case anaconda.StallWarning:
 				fmt.Println("Got a stall warning! falling behind!")
