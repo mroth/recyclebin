@@ -110,7 +110,7 @@ func startLogger(rf time.Duration) *time.Ticker {
 			<-ticker.C
 			period := tracked - trackedLast
 			periodRate := float64(period) / rf.Seconds()
-			log.Printf("Tweets tracked: %v (↑%v, +%v/sec.)\n", tracked, period, periodRate)
+			log.Printf("Tweets tracked: %5d (↑%v, +%.1f/sec.)\n", tracked, period, periodRate)
 			trackedLast = tracked
 		}
 	}()
