@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -89,14 +90,13 @@ func tracker(terms string, duration time.Duration) (r results) {
 	}
 }
 
-func logger() *time.Ticker {
-	var lograte = time.Second * 5
-	ticker := time.NewTicker(lograte)
+func startLogger(rf time.Duration) *time.Ticker {
+	ticker := time.NewTicker(rf)
 	go func() {
 		for {
 			<-ticker.C
 			period := tracked - trackedLast
-			periodRate := float64(period) / lograte.Seconds()
+			periodRate := float64(period) / rf.Seconds()
 			log.Printf("Tweets tracked: %v (↑%v, +%v/sec.)\n", tracked, period, periodRate)
 			trackedLast = tracked
 		}
@@ -105,18 +105,31 @@ func logger() *time.Ticker {
 }
 
 func main() {
-	term := "♻️"
-	fmt.Printf("🚀 Starting to monitor Twitter for term: [ %v ]...\n", term)
+	// default flags
+	var term = flag.String("term", "♻️", "term to monitor")
+	var sampleDuration = flag.Duration("sample", time.Minute*5, "sample length")
+	var reportFrequency = flag.Duration("report", 0, "periodically report on progress")
+	flag.Parse()
 
-	logger := logger()
-	duration := time.Second * 10 // TODO: paramaterize
-	results := tracker("♻️", duration)
+	// start progress reports if desired
+	var logger *time.Ticker
+	if *reportFrequency > 0 {
+		logger = startLogger(*reportFrequency)
+	}
 
-	logger.Stop()
-	time.Sleep(time.Millisecond * 250) // allow logger to catch up
+	// do the monitoring for the length of sample
+	fmt.Printf("🚀 Starting to monitor Twitter for term: [ %v ]...\n", *term)
+	results := tracker(*term, *sampleDuration)
 
-	rate := float64(tracked) / duration.Seconds()
-	fmt.Printf("\n\n✨ DONE ✨ - time monitored: %v, total tweets tracked: %v, rate: %.1f/sec.\n", duration, tracked, rate)
+	// monitoring is done, cleanup
+	if *reportFrequency > 0 {
+		logger.Stop()
+		time.Sleep(time.Millisecond * 250) // allow logger time to finish any flush to stdout
+	}
+
+	// produce the report!
+	rate := float64(tracked) / (*sampleDuration).Seconds()
+	fmt.Printf("\n\n✨ DONE ✨ - time monitored: %v, total tweets tracked: %v, rate: %.1f/sec.\n", *sampleDuration, tracked, rate)
 
 	fmt.Println("\nACCOUNTS")
 	userScores := results.users.Scores()
