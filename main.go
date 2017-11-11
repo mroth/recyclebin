@@ -35,23 +35,24 @@ func initTwitterAPI() *anaconda.TwitterApi {
 	return api
 }
 
-type results struct {
-	phrases, users, urls, lang *termCounter
-}
-
-func tracker(terms string, duration time.Duration) (r results) {
-	r.phrases = NewTermCounter()
-	r.users = NewTermCounter()
-	r.urls = NewTermCounter()
-	r.lang = NewTermCounter()
-
+func initStreamFilter(terms string) *anaconda.Stream {
 	api := initTwitterAPI()
 	v := url.Values{}
 	v.Set("track", terms)
 	v.Set("stall_warnings", "true")
-	stream := api.PublicStreamFilter(v)
+	return api.PublicStreamFilter(v)
+}
 
+func tracker(terms string, duration time.Duration) (r results) {
+	// init somewhere to store results
+	r = newResults()
+
+	// setup streaming from the API
+	stream := initStreamFilter(terms)
+
+	// a timer for knowing when we are done sampling
 	done := time.NewTimer(duration)
+
 	for {
 		select {
 		case <-done.C:
@@ -83,6 +84,8 @@ func tracker(terms string, duration time.Duration) (r results) {
 
 			case anaconda.StallWarning:
 				fmt.Println("Got a stall warning! falling behind!")
+			case anaconda.DisconnectMessage:
+				fmt.Println("Got disconnected!")
 			default:
 				fmt.Printf("got something else! %T\n", m)
 				os.Exit(1)
@@ -131,36 +134,7 @@ func main() {
 	// produce the report!
 	rate := float64(tracked) / (*sampleDuration).Seconds()
 	fmt.Printf("\n\n ✨ DONE ✨ - time monitored: %v, total tweets tracked: %v, rate: %.1f/sec.\n", *sampleDuration, tracked, rate)
-
-	fmt.Println("\n👨‍👨‍👦 ACCOUNTS 👨‍👨‍👦")
-	userScores := results.users.Scores()
-	multiTweeters := userScores.GreaterThan(1)
-	fmt.Printf("Total distinct accounts: %d, amount who tweeted more than once: %d\n",
-		userScores.Len(),
-		multiTweeters.Len(),
-	)
-	fmt.Println("Most active:", userScores.GreaterThan(1).Sorted().First(10))
-
-	fmt.Println("\n📣 LANG 📣")
-	langScores := results.lang.Scores()
-	fmt.Printf("Language distribution: %v\n", langScores.Sorted())
-
-	fmt.Println("\n🔗 URLS 🔗")
-	urlScores := results.urls.Scores()
-	reusedUrls := urlScores.GreaterThan(1)
-	fmt.Printf("Total distinct URLs: %d, appeared more than once: %d\n", urlScores.Len(), reusedUrls.Len())
-	fmt.Println("Most active:", urlScores.GreaterThan(1).Sorted().First(10))
-
-	fmt.Println("\n📃 TEXT 📃")
-	phraseScores := results.phrases.Scores()
-	reusedPhrases := phraseScores.GreaterThan(1)
-	fmt.Printf("Total distinct text phrases (before URL): %d, appeared more than once: %d\n", phraseScores.Len(), reusedPhrases.Len())
-	// fmt.Println("Most common:", phraseScores.GreaterThan(1).Sorted().First(10))
-	topPhrases := phraseScores.GreaterThan(1).Sorted().First(20)
-	fmt.Printf("Top %v most common phrases:\n", len(topPhrases))
-	for _, phrase := range topPhrases {
-		fmt.Printf("%v: %q\n", phrase.Value, phrase.Key)
-	}
+	results.PrintReport()
 }
 
 // TODO: catch early interrupt and show results
