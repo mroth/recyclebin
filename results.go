@@ -31,9 +31,10 @@ func (r results) PrintReport() {
 
 	fmt.Println("\n🔗 URLS 🔗")
 	urlScores := r.urls.Scores()
-	reusedUrls := urlScores.GreaterThan(1)
-	fmt.Printf("Total distinct URLs: %d, appeared more than once: %d\n", urlScores.Len(), reusedUrls.Len())
-	fmt.Println("Most active:", urlScores.GreaterThan(1).Sorted().First(10))
+	minTimes := 10
+	reusedUrls := urlScores.GreaterThan(minTimes)
+	fmt.Printf("Total distinct URLs: %d, appeared more than %dx: %d\n", urlScores.Len(), minTimes, reusedUrls.Len())
+	fmt.Println("Most active:", reusedUrls.Sorted().First(10))
 
 	fmt.Println("\n📃 TEXT 📃")
 	phraseScores := r.phrases.Scores()
