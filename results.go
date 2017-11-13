@@ -39,7 +39,7 @@ func (r results) PrintReport() {
 	phraseScores := r.phrases.Scores()
 	reusedPhrases := phraseScores.GreaterThan(1)
 	fmt.Printf("Total distinct text phrases (before URL): %d, appeared more than once: %d\n", phraseScores.Len(), reusedPhrases.Len())
-	topPhrases := phraseScores.GreaterThan(1).Sorted().First(20)
+	topPhrases := phraseScores.GreaterThan(1).Sorted().First(10)
 	fmt.Printf("Top %v most common phrases:\n", len(topPhrases))
 	for _, phrase := range topPhrases {
 		fmt.Printf("%v: %q\n", phrase.Value, phrase.Key)
