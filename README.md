@@ -7,13 +7,18 @@ Because my primary motivation to write it was figuring out what's going on with
 the :recycle: symbol on Twitter. (But you can use it to measure anything via the
 `-term=FOO` option.)
 
-See the article about it here:
-[ARTICLE]
+See the article I used it for here:
+https://medium.com/@mroth/why-the-emoji-recycling-symbol-is-taking-over-twitter-65ad4b18b04b
 
 Screenshot
 ----------
 <img width="696" height="743" src="https://user-images.githubusercontent.com/40650/32742490-99bd1e02-c877-11e7-8ee1-657ed40e942a.png" alt="screenshot">
 
+
+Here be dragons
+---------------
+This was written as a quick one-off program to just grab some data for an article.
+Please treat the code with that understanding. :-)
 
 Using this yourself
 -------------------
